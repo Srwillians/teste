@@ -5,8 +5,8 @@ const app = express();
 const HA_URL = "http://192.168.2.146:8123"; // O IP do seu Home Assistant
 
 const inquilinos = {
-  "casa1": { user: "vsitante1", pass: "12345", dash: "/casa-wem" },
-  "casa2": { user: "vsitante2", pass: "12345", dash: "/outra-casa" },
+  "casa1": { user: "visitante1", pass: "12345", dash: "/casa-wem/0" },
+  "casa2": { user: "visitante2", pass: "12345", dash: "/outra-casa" },
   "casa3": { user: "inquilino3", pass: "senha3", dash: "/lovelace-casa3" },
   "casa4": { user: "inquilino4", pass: "senha4", dash: "/lovelace-casa4" },
   "casa5": { user: "inquilino5", pass: "senha5", dash: "/lovelace-casa5" },
@@ -69,3 +69,4 @@ app.get('/login', (req, res) => {
 app.listen(8099, '0.0.0.0', () => {
   console.log("Servidor Multi-Casa rodando na porta 8099");
 });
+
