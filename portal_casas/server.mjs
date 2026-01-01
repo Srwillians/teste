@@ -15,34 +15,31 @@ app.get('/login', async (req, res) => {
   if (!config) return res.status(404).send("ID nao encontrado");
 
   try {
-    const finalRedirect = `${HA_URL}${config.dash}?kiosk`;
+    // URL simplificada para o Passo 1 (O HA é rigoroso aqui)
+    const baseRedirect = `${HA_URL}${config.dash}`;
+    // URL final para o navegador
+    const finalRedirect = `${baseRedirect}?kiosk`;
 
-    // PASSO 1: Pedir o Flow ID
+    // PASSO 1: Iniciar o fluxo com as duas chaves obrigatórias
     const flowRes = await fetch(`${HA_URL}/auth/login_flow`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         handler: ["homeassistant", "homeassistant"],
-        client_id: HA_URL + "/"
+        client_id: HA_URL + "/",
+        redirect_uri: baseRedirect // Enviando a chave exigida de forma limpa
       })
     });
     
-    // Verificação de segurança para o JSON
-    const responseText = await flowRes.text();
-    let flowData;
-    try {
-        flowData = JSON.parse(responseText);
-    } catch (e) {
-        return res.status(500).send("O HA retornou um erro nao esperado: " + responseText);
-    }
-
+    const flowData = await flowRes.json();
     const flowId = flowData.flow_id;
 
     if (!flowId) {
       return res.status(500).send("Erro no HA: " + JSON.stringify(flowData));
     }
 
-    // PASSO 2: Formulário de submissão automática
+    // PASSO 2: Formulário de submissão automática para o navegador do cliente
+    // Aqui usamos o flowId que o HA acabou de nos dar
     res.send(`
       <html>
         <head><meta charset="utf-8"></head>
@@ -64,4 +61,6 @@ app.get('/login', async (req, res) => {
   }
 });
 
-app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Casa Ativo 1559"));
+
+app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Casa Ativo 1606"));
+
