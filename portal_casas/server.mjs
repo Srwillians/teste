@@ -1,5 +1,5 @@
 import express from 'express';
-import fetch from 'node-fetch'; // Certifique-se de que o fetch está disponível
+// O Node 18+ já tem fetch nativo, não precisa de import externo.
 const app = express();
 
 const HA_URL = "http://192.168.2.146:8123";
@@ -13,41 +13,53 @@ app.get('/login', async (req, res) => {
   const id = req.query.id;
   const config = inquilinos[id];
 
-  if (!config) return res.status(404).send("ID nao encontrado");
+  if (!config) return res.status(404).send("ID não encontrado");
 
   try {
-    // PASSO 1: Iniciar o fluxo de autenticação
-    const flowResponse = await fetch(`${HA_URL}/auth/login_flow`, {
+    // PASSO 1: Iniciar o fluxo
+    const responseFlow = await fetch(`${HA_URL}/auth/login_flow`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: HA_URL + "/", handler: ["homeassistant", "homeassistant"] })
+    });
+    const flowData = await responseFlow.json();
+    const flowId = flowData.flow_id;
+
+    // PASSO 2: Validar credenciais via JSON (O segredo está aqui)
+    const responseAuth = await fetch(`${HA_URL}/auth/login_flow/${flowId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        handler: ["homeassistant", "homeassistant"],
-        client_id: HA_URL + "/"
+        username: config.user,
+        password: config.pass
       })
     });
-    
-    const flowData = await flowResponse.json();
-    const flowId = flowData.flow_id;
+    const authData = await responseAuth.json();
 
-    // PASSO 2: Enviar as credenciais para o Flow ID gerado
-    // Isso evita o erro 404 porque estamos seguindo o protocolo oficial
-    res.send(`
-      <html>
-        <body onload="document.forms[0].submit()">
-          <form method="POST" action="${HA_URL}/auth/login_flow/${flowId}">
-            <input type="hidden" name="username" value="${config.user}">
-            <input type="hidden" name="password" value="${config.pass}">
-            <input type="hidden" name="client_id" value="${HA_URL}/">
-            <input type="hidden" name="redirect_uri" value="${HA_URL}${config.dash}?kiosk">
-          </form>
-          <p>Autenticando na ${id}...</p>
-        </body>
-      </html>
-    `);
+    // Se o HA retornou um código de autorização, montamos o formulário de redirecionamento final
+    if (authData.result === "success" || authData.type === "create_entry") {
+       // O HA logou com sucesso internamente, agora precisamos que o navegador do usuário receba o cookie
+       res.send(`
+        <html>
+          <body onload="document.forms[0].submit()">
+            <form method="POST" action="${HA_URL}/auth/login">
+              <input type="hidden" name="handler" value="homeassistant">
+              <input type="hidden" name="username" value="${config.user}">
+              <input type="hidden" name="password" value="${config.pass}">
+              <input type="hidden" name="redirect_uri" value="${HA_URL}${config.dash}?kiosk">
+            </form>
+            <p>Redirecionando para a Dashboard...</p>
+          </body>
+        </html>
+      `);
+    } else {
+      res.status(401).send("Falha na autenticação: Verifique usuário e senha no server.mjs");
+    }
 
   } catch (error) {
-    res.status(500).send("Erro ao conectar com o HA: " + error.message);
+    console.error(error);
+    res.status(500).send("Erro de conexão: " + error.message);
   }
 });
 
-app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Inquilino Rodando"));
+app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Inquilino v2 Rodando"));
