@@ -2,14 +2,12 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Instala o servidor web Express
 RUN npm install express
 
-# Copia o seu arquivo de código para dentro do addon
-COPY server.js .
+# Copia o arquivo com a nova extensão
+COPY server.mjs .
 
-# Expõe a porta de acesso
 EXPOSE 8099
 
-# Comando para ligar o servidor
-CMD [ "node", "server.js" ]
+# Executa o arquivo .mjs
+CMD [ "node", "server.mjs" ]
