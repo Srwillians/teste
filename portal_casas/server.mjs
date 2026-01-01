@@ -15,13 +15,13 @@ app.get('/login', async (req, res) => {
   if (!config) return res.status(404).send("ID nao encontrado");
 
   try {
-    // PASSO 1: Pedir o Flow ID para o Home Assistant
+    // PASSO 1: Pedir o Flow ID (Corrigido com client_id no corpo)
     const flowRes = await fetch(`${HA_URL}/auth/login_flow`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_id: HA_URL + "/",
-        handler: ["homeassistant", "homeassistant"]
+        handler: ["homeassistant", "homeassistant"],
+        client_id: HA_URL + "/"  // O HA exige que isso seja enviado aqui!
       })
     });
     
@@ -29,12 +29,11 @@ app.get('/login', async (req, res) => {
     const flowId = flowData.flow_id;
 
     if (!flowId) {
-      throw new Error("Nao foi possivel gerar o Flow ID. Verifique o CORS no HA.");
+      console.error("Erro do HA:", flowData);
+      return res.status(500).send("Erro ao gerar fluxo de login. Verifique o log do HA.");
     }
 
-    // PASSO 2: Em vez de tentar validar no servidor, vamos enviar um 
-    // formulário que faz o POST direto para o endpoint do FLOW.
-    // Isso evita bloqueios de IP e problemas de JSON.
+    // PASSO 2: Formulário que o navegador enviará
     res.send(`
       <html>
         <head><meta charset="utf-8"></head>
@@ -47,11 +46,6 @@ app.get('/login', async (req, res) => {
             <input type="hidden" name="client_id" value="${HA_URL}/">
             <input type="hidden" name="redirect_uri" value="${HA_URL}${config.dash}?kiosk">
           </form>
-
-          <script>
-            // Caso o auto-submit falhe, tenta novamente em 1 segundo
-            setTimeout(() => { document.forms[0].submit(); }, 1000);
-          </script>
         </body>
       </html>
     `);
@@ -61,4 +55,4 @@ app.get('/login', async (req, res) => {
   }
 });
 
-app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Casa Ativo 15:51"));
+app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Casa Ativo 15:53"));
