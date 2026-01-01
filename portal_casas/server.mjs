@@ -14,26 +14,32 @@ app.get('/login', async (req, res) => {
 
   if (!config) return res.status(404).send("ID nao encontrado");
 
-try {
+  try {
     const finalRedirect = `${HA_URL}${config.dash}?kiosk`;
 
-    // PASSO 1: Pedir o Flow ID com TODAS as chaves obrigatórias
+    // PASSO 1: Pedir o Flow ID
     const flowRes = await fetch(`${HA_URL}/auth/login_flow`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         handler: ["homeassistant", "homeassistant"],
-        client_id: HA_URL + "/",
-        redirect_uri: finalRedirect // O HA exigiu isso no log agora
+        client_id: HA_URL + "/"
       })
     });
     
-    const flowData = await flowRes.json();
+    // Verificação de segurança para o JSON
+    const responseText = await flowRes.text();
+    let flowData;
+    try {
+        flowData = JSON.parse(responseText);
+    } catch (e) {
+        return res.status(500).send("O HA retornou um erro nao esperado: " + responseText);
+    }
+
     const flowId = flowData.flow_id;
 
     if (!flowId) {
-      console.error("Erro detalhado do HA:", flowData);
-      return res.status(500).send("Erro ao gerar fluxo de login. Verifique o log do Add-on.");
+      return res.status(500).send("Erro no HA: " + JSON.stringify(flowData));
     }
 
     // PASSO 2: Formulário de submissão automática
@@ -54,9 +60,8 @@ try {
     `);
 
   } catch (error) {
-    res.status(500).send("Erro interno: " + error.message);
+    res.status(500).send("Erro de rede: " + error.message);
   }
 });
 
-app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Casa Ativo 15:57"));
-
+app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Casa Ativo 1559"));
