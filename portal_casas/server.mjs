@@ -17,11 +17,12 @@ app.get('/login', async (req, res) => {
     const baseRedirect = `${HA_URL}${config.dash}`;
 
     // PASSO 1: Iniciar o fluxo com o handler no formato de lista simples
+// PASSO 1: Lista de 2 itens exigida, mas com o par Provedor + Método
     const flowRes = await fetch(`${HA_URL}/auth/login_flow`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        handler: ["homeassistant"], 
+        handler: ["homeassistant", "homeassistant"], // Voltamos para 2 itens
         client_id: HA_URL + "/",
         redirect_uri: baseRedirect
       })
@@ -58,3 +59,4 @@ app.get('/login', async (req, res) => {
 });
 
 app.listen(8099, '0.0.0.0', () => console.log("Porteiro v10 Ativo 16:39"));
+
