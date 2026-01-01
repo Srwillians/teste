@@ -4,63 +4,58 @@ const app = express();
 const HA_URL = "http://192.168.2.146:8123";
 
 const inquilinos = {
-  "casa1": { user: "visitante1", pass: "12345", dash: "/casa-wem" },
-  "casa2": { user: "visitante2", pass: "12345", dash: "/outra-casa" }
+  "casa1": { user: "visitante1", pass: "12345", dash: "/casa-wem" }
 };
 
 app.get('/login', async (req, res) => {
   const id = req.query.id;
   const config = inquilinos[id];
-
   if (!config) return res.status(404).send("ID nao encontrado");
 
   try {
-    // URL simplificada para o Passo 1 (O HA é rigoroso aqui)
     const baseRedirect = `${HA_URL}${config.dash}`;
-    // URL final para o navegador
-    const finalRedirect = `${baseRedirect}?kiosk`;
 
-    // PASSO 1: Iniciar o fluxo com as duas chaves obrigatórias
+    // PASSO 1: Pedir o Flow ID
     const flowRes = await fetch(`${HA_URL}/auth/login_flow`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest' // Importante para simular o browser
+      },
       body: JSON.stringify({
         handler: ["homeassistant", "homeassistant"],
         client_id: HA_URL + "/",
-        redirect_uri: baseRedirect // Enviando a chave exigida de forma limpa
+        redirect_uri: baseRedirect
       })
     });
     
-    const flowData = await flowRes.json();
-    const flowId = flowData.flow_id;
+    const responseText = await flowRes.text();
 
-    if (!flowId) {
-      return res.status(500).send("Erro no HA: " + JSON.stringify(flowData));
+    if (!flowRes.ok) {
+      return res.status(flowRes.status).send(`O HA negou o acesso (Erro ${flowRes.status}): ${responseText}`);
     }
 
-    // PASSO 2: Formulário de submissão automática para o navegador do cliente
-    // Aqui usamos o flowId que o HA acabou de nos dar
+    const flowData = JSON.parse(responseText);
+    const flowId = flowData.flow_id;
+
+    // PASSO 2: Formulário
     res.send(`
       <html>
-        <head><meta charset="utf-8"></head>
-        <body onload="document.forms[0].submit()" style="font-family:sans-serif; text-align:center; padding-top:100px;">
-          <h2>Conectando à ${id}...</h2>
-          
+        <body onload="document.forms[0].submit()">
           <form method="POST" action="${HA_URL}/auth/login_flow/${flowId}">
             <input type="hidden" name="username" value="${config.user}">
             <input type="hidden" name="password" value="${config.pass}">
             <input type="hidden" name="client_id" value="${HA_URL}/">
-            <input type="hidden" name="redirect_uri" value="${finalRedirect}">
+            <input type="hidden" name="redirect_uri" value="${baseRedirect}?kiosk">
           </form>
+          <p>Autenticando...</p>
         </body>
       </html>
     `);
 
   } catch (error) {
-    res.status(500).send("Erro de rede: " + error.message);
+    res.status(500).send("Erro de conexão: " + error.message);
   }
 });
 
-
-app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Casa Ativo 1606"));
-
+app.listen(8099, '0.0.0.0', () => console.log("Online na 8099 1609"));
