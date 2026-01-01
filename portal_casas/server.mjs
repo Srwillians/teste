@@ -16,14 +16,14 @@ app.get('/login', async (req, res) => {
     const baseRedirect = `${HA_URL}${config.dash}`;
 
     // PASSO 1: Pedir o Flow ID
+   // PASSO 1: Pedir o Flow ID com o formato simplificado que evita o Erro 500
     const flowRes = await fetch(`${HA_URL}/auth/login_flow`, {
       method: 'POST',
       headers: { 
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest' // Importante para simular o browser
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        handler: ["homeassistant", "homeassistant"],
+        handler: "homeassistant", // String simples, não array
         client_id: HA_URL + "/",
         redirect_uri: baseRedirect
       })
@@ -58,4 +58,5 @@ app.get('/login', async (req, res) => {
   }
 });
 
-app.listen(8099, '0.0.0.0', () => console.log("Online na 8099 1609"));
+app.listen(8099, '0.0.0.0', () => console.log("Online na 8099 1626"));
+
