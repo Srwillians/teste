@@ -1,5 +1,4 @@
 import express from 'express';
-// O Node 18+ já tem fetch nativo, não precisa de import externo.
 const app = express();
 
 const HA_URL = "http://192.168.2.146:8123";
@@ -13,64 +12,53 @@ app.get('/login', async (req, res) => {
   const id = req.query.id;
   const config = inquilinos[id];
 
-  if (!config) return res.status(404).send("ID não encontrado");
+  if (!config) return res.status(404).send("ID nao encontrado");
 
   try {
-    // PASSO 1: Iniciar o fluxo
-    const responseFlow = await fetch(`${HA_URL}/auth/login_flow`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_id: HA_URL + "/", handler: ["homeassistant", "homeassistant"] })
-    });
-    
-    const flowData = await responseFlow.json();
-    const flowId = flowData.flow_id;
-
-    // PASSO 2: Tentar autenticar
-    const responseAuth = await fetch(`${HA_URL}/auth/login_flow/${flowId}`, {
+    // PASSO 1: Pedir o Flow ID para o Home Assistant
+    const flowRes = await fetch(`${HA_URL}/auth/login_flow`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        flow_id: flowId,
-        user: config.user,     // Algumas versões usam 'user'
-        username: config.user, // Outras usam 'username'
-        password: config.pass
+        client_id: HA_URL + "/",
+        handler: ["homeassistant", "homeassistant"]
       })
     });
     
-    const authData = await responseAuth.json();
-    console.log("Resposta do HA:", JSON.stringify(authData));
+    const flowData = await flowRes.json();
+    const flowId = flowData.flow_id;
 
-    // Se o tipo for 'create_entry', o login funcionou perfeitamente!
-    if (authData.type === "create_entry" || authData.result === "success") {
-       res.send(`
-        <html>
-          <body onload="document.forms[0].submit()">
-            <form method="POST" action="${HA_URL}/auth/login">
-              <input type="hidden" name="handler" value="homeassistant">
-              <input type="hidden" name="username" value="${config.user}">
-              <input type="hidden" name="password" value="${config.pass}">
-              <input type="hidden" name="redirect_uri" value="${config.dash}?kiosk">
-            </form>
-            <p style="font-family:sans-serif; text-align:center;">Autenticado! Entrando na Dashboard...</p>
-          </body>
-        </html>
-      `);
-    } else {
-      // Se falhar, vamos mostrar o que o HA respondeu para diagnosticar
-      res.status(401).send(`
-        <h2>Falha na Autenticação</h2>
-        <p>O HA recusou as credenciais para o inquilino: <b>${id}</b></p>
-        <p>Usuário tentado: <b>${config.user}</b></p>
-        <p>Resposta técnica: <i>${authData.errors ? JSON.stringify(authData.errors) : authData.type}</i></p>
-        <hr>
-        <p>Dica: Verifique se o nome do usuário está correto em "Configurações > Pessoas" no HA.</p>
-      `);
+    if (!flowId) {
+      throw new Error("Nao foi possivel gerar o Flow ID. Verifique o CORS no HA.");
     }
 
+    // PASSO 2: Em vez de tentar validar no servidor, vamos enviar um 
+    // formulário que faz o POST direto para o endpoint do FLOW.
+    // Isso evita bloqueios de IP e problemas de JSON.
+    res.send(`
+      <html>
+        <head><meta charset="utf-8"></head>
+        <body onload="document.forms[0].submit()" style="font-family:sans-serif; text-align:center; padding-top:100px;">
+          <h2>Autenticando na ${id}...</h2>
+          
+          <form method="POST" action="${HA_URL}/auth/login_flow/${flowId}">
+            <input type="hidden" name="username" value="${config.user}">
+            <input type="hidden" name="password" value="${config.pass}">
+            <input type="hidden" name="client_id" value="${HA_URL}/">
+            <input type="hidden" name="redirect_uri" value="${HA_URL}${config.dash}?kiosk">
+          </form>
+
+          <script>
+            // Caso o auto-submit falhe, tenta novamente em 1 segundo
+            setTimeout(() => { document.forms[0].submit(); }, 1000);
+          </script>
+        </body>
+      </html>
+    `);
+
   } catch (error) {
-    res.status(500).send("Erro de conexão: " + error.message);
+    res.status(500).send("Erro interno: " + error.message);
   }
 });
 
-app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Inquilino v2 Rodando 15:42"));
+app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Casa Ativo 15:51"));
