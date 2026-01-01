@@ -16,13 +16,29 @@ const inquilinos = {
 // Rota de Diagnóstico: Se você acessar http://IP:8099/ ele mostra isso
 app.get('/', (req, res) => {
   const idsDisponiveis = Object.keys(inquilinos).join(', ');
-  res.send(`
-    <div style="font-family: sans-serif; padding: 20px;">
-      <h2 style="color: #03a9f4;">Porteiro Digital Online!</h2>
-      <p>O servidor está funcionando corretamente.</p>
-      <p><strong>IDs configurados:</strong> ${idsDisponiveis}</p>
-      <p>Tente acessar: <a href="/login?id=casa1">/login?id=casa1</a></p>
-    </div>
+res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Login Casa 1</title>
+      </head>
+      <body onload="document.forms[0].submit()" style="font-family: sans-serif; text-align: center; padding-top: 100px;">
+        <h2>Conectando à ${id}...</h2>
+        <p>Se não for redirecionado em 5 segundos, <a href="javascript:document.forms[0].submit()">clique aqui</a>.</p>
+        
+        <form method="POST" action="${HA_URL}/auth/login">
+          <input type="hidden" name="handler" value="homeassistant">
+          
+          <input type="hidden" name="client_id" value="${HA_URL}/">
+          
+          <input type="hidden" name="redirect_uri" value="${HA_URL}${config.dash}?kiosk">
+          
+          <input type="hidden" name="username" value="${config.user}">
+          <input type="hidden" name="password" value="${config.pass}">
+        </form>
+      </body>
+    </html>
   `);
 });
 
@@ -70,6 +86,7 @@ app.get('/login', (req, res) => {
 app.listen(8099, '0.0.0.0', () => {
   console.log("Servidor Multi-Casa rodando na porta 8099");
 });
+
 
 
 
