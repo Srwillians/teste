@@ -1,0 +1,12 @@
+name: "Portal das 6 Casas"
+description: "Acesso simplificado para inquilinos"
+version: "1.0.0"
+slug: "portal_casas"
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+init: false
+ports:
+  8099/tcp: 8099
