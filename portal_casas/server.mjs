@@ -11,46 +11,39 @@ const inquilinos = {
 app.get('/login', (req, res) => {
   const id = req.query.id;
   const config = inquilinos[id];
-  if (!config) return res.status(404).send("Inquilino não encontrado");
+  if (!config) return res.status(404).send("Inquilino nao encontrado");
 
   const finalRedirect = `${HA_URL}${config.dash}?kiosk`;
 
+  // Geramos um HTML que faz o POST automático. 
+  // O HA espera o campo "user" (ID do usuario) quando o handler é trusted_networks.
   res.send(`
     <html>
       <head>
         <title>Autenticando...</title>
-        <style>body { font-family: sans-serif; text-align: center; padding-top: 100px; background: #111; color: #ccc; }</style>
+        <style>body { font-family: sans-serif; text-align: center; padding-top: 100px; background: #1c1c1c; color: white; }</style>
       </head>
       <body>
-        <div id="status">Iniciando conexão segura para Unidade ${id}...</div>
+        <h2>Acessando Unidade ${id}...</h2>
+        <p>Validando acesso para: <strong>${config.user}</strong></p>
 
-        <form id="formStep1" method="POST" action="${HA_URL}/auth/login_flow" target="hidden_frame">
+        <form id="autoLoginForm" method="POST" action="${HA_URL}/auth/login_flow">
             <input type="hidden" name="handler" value="trusted_networks">
             <input type="hidden" name="handler" value="trusted_networks">
+            <input type="hidden" name="user" value="${config.user}">
             <input type="hidden" name="client_id" value="${HA_URL}/">
             <input type="hidden" name="redirect_uri" value="${finalRedirect}">
         </form>
 
-        <iframe name="hidden_frame" id="hidden_frame" style="display:none"></iframe>
-
         <script>
-            // Dispara o primeiro passo automaticamente
-            document.getElementById('formStep1').submit();
-
-            // O HA redirecionará o iframe para uma URL contendo o flow_id.
-            // Tentamos capturar ou simplesmente prosseguir para a escolha do usuario
+            // Dispara o envio do formulario em 500ms
             setTimeout(function() {
-                document.getElementById('status').innerText = "Validando credenciais...";
-                
-                // Redirecionamos o visitante para a tela de autorizacao
-                // Como ele ja disparou o flow acima, o HA ja o reconhece na rede
-                const authUrl = "${HA_URL}/auth/authorize?client_id=${encodeURIComponent(HA_URL + "/")}&redirect_uri=${encodeURIComponent(finalRedirect)}";
-                window.location.href = authUrl;
-            }, 1000);
+                document.getElementById('autoLoginForm').submit();
+            }, 500);
         </script>
       </body>
     </html>
   `);
 });
 
-app.listen(8099, '0.0.0.0', () => console.log("Servidor v12 Online 1717"));
+app.listen(8099, '0.0.0.0', () => console.log("Porteiro Automático v13 Online 1721"));
