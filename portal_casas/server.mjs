@@ -11,17 +11,17 @@ const inquilinos = {
 app.get('/login', async (req, res) => {
   const id = req.query.id;
   const config = inquilinos[id];
-  if (!config) return res.status(404).send("Inquilino nao encontrado");
+  if (!config) return res.status(404).send("Inquilino não encontrado");
 
   try {
     const baseRedirect = `${HA_URL}${config.dash}`;
 
-    // PASSO 1: Pedir o Flow ID com o formato de lista EXATO que o HA pediu
+    // PASSO 1: Agora com a lista de tamanho 2 exigida pelo erro 400
     const flowRes = await fetch(`${HA_URL}/auth/login_flow`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        handler: ["homeassistant"], // O HA confirmou que quer uma lista []
+        handler: ["homeassistant", "homeassistant"],
         client_id: HA_URL + "/",
         redirect_uri: baseRedirect
       })
@@ -36,12 +36,12 @@ app.get('/login', async (req, res) => {
     const flowData = JSON.parse(responseText);
     const flowId = flowData.flow_id;
 
-    // PASSO 2: O formulário que finaliza o login no navegador do usuário
+    // PASSO 2: Formulário final
     res.send(`
       <html>
         <head><meta charset="utf-8"></head>
         <body onload="document.forms[0].submit()" style="font-family:sans-serif; text-align:center; padding-top:100px;">
-          <h2>Conectando à unidade ${id}...</h2>
+          <h2>Entrando na ${id}...</h2>
           
           <form method="POST" action="${HA_URL}/auth/login_flow/${flowId}">
             <input type="hidden" name="username" value="${config.user}">
@@ -58,4 +58,4 @@ app.get('/login', async (req, res) => {
   }
 });
 
-app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Casa Ativo 1631"));
+app.listen(8099, '0.0.0.0', () => console.log("Porteiro Online"));
