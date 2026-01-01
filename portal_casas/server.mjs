@@ -15,10 +15,6 @@ app.get('/login', (req, res) => {
 
   const finalRedirect = `${HA_URL}${config.dash}?kiosk`;
 
-  // Em vez de fetch (que dá erro de CORS), usamos um redirecionamento 
-  // que já "empurra" o usuário para o provedor de rede confiável.
-  const authUrl = `${HA_URL}/auth/authorize?client_id=${encodeURIComponent(HA_URL + "/")}&redirect_uri=${encodeURIComponent(finalRedirect)}&auth_callback=1`;
-
   res.send(`
     <html>
       <head>
@@ -26,17 +22,26 @@ app.get('/login', (req, res) => {
         <style>body { font-family: sans-serif; text-align: center; padding-top: 100px; background: #111; color: #fff; }</style>
       </head>
       <body>
-        <h2>Acessando Unidade ${id}...</h2>
-        <p>Aguarde o redirecionamento seguro...</p>
+        <h2>Autenticando Unidade ${id}...</h2>
+        <p>Por favor, aguarde...</p>
+
+        <form id="bypassForm" method="POST" action="${HA_URL}/auth/login_flow">
+            <input type="hidden" name="handler" value="trusted_networks">
+            <input type="hidden" name="handler" value="trusted_networks">
+            <input type="hidden" name="user" value="${config.user}">
+            <input type="hidden" name="client_id" value="${HA_URL}/">
+            <input type="hidden" name="redirect_uri" value="${finalRedirect}">
+        </form>
 
         <script>
-            // Redirecionamos para a página de autorização oficial.
-            // O HA detectará seu IP e mostrará a lista de usuários.
-            window.location.href = "${authUrl}";
+            // Tentativa de submissão direta
+            setTimeout(function() {
+                document.getElementById('bypassForm').submit();
+            }, 500);
         </script>
       </body>
     </html>
   `);
 });
 
-app.listen(8099, '0.0.0.0', () => console.log("Servidor v15 Online"));
+app.listen(8099, '0.0.0.0', () => console.log("Servidor v16 Ativo"));
