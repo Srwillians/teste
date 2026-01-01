@@ -14,14 +14,17 @@ app.get('/login', async (req, res) => {
 
   if (!config) return res.status(404).send("ID nao encontrado");
 
-  try {
-    // PASSO 1: Pedir o Flow ID (Corrigido com client_id no corpo)
+try {
+    const finalRedirect = `${HA_URL}${config.dash}?kiosk`;
+
+    // PASSO 1: Pedir o Flow ID com TODAS as chaves obrigatórias
     const flowRes = await fetch(`${HA_URL}/auth/login_flow`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         handler: ["homeassistant", "homeassistant"],
-        client_id: HA_URL + "/"  // O HA exige que isso seja enviado aqui!
+        client_id: HA_URL + "/",
+        redirect_uri: finalRedirect // O HA exigiu isso no log agora
       })
     });
     
@@ -29,22 +32,22 @@ app.get('/login', async (req, res) => {
     const flowId = flowData.flow_id;
 
     if (!flowId) {
-      console.error("Erro do HA:", flowData);
-      return res.status(500).send("Erro ao gerar fluxo de login. Verifique o log do HA.");
+      console.error("Erro detalhado do HA:", flowData);
+      return res.status(500).send("Erro ao gerar fluxo de login. Verifique o log do Add-on.");
     }
 
-    // PASSO 2: Formulário que o navegador enviará
+    // PASSO 2: Formulário de submissão automática
     res.send(`
       <html>
         <head><meta charset="utf-8"></head>
         <body onload="document.forms[0].submit()" style="font-family:sans-serif; text-align:center; padding-top:100px;">
-          <h2>Autenticando na ${id}...</h2>
+          <h2>Conectando à ${id}...</h2>
           
           <form method="POST" action="${HA_URL}/auth/login_flow/${flowId}">
             <input type="hidden" name="username" value="${config.user}">
             <input type="hidden" name="password" value="${config.pass}">
             <input type="hidden" name="client_id" value="${HA_URL}/">
-            <input type="hidden" name="redirect_uri" value="${HA_URL}${config.dash}?kiosk">
+            <input type="hidden" name="redirect_uri" value="${finalRedirect}">
           </form>
         </body>
       </html>
@@ -55,4 +58,5 @@ app.get('/login', async (req, res) => {
   }
 });
 
-app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Casa Ativo 15:53"));
+app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Casa Ativo 15:57"));
+
