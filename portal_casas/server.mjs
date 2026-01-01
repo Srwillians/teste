@@ -11,39 +11,74 @@ const inquilinos = {
 app.get('/login', (req, res) => {
   const id = req.query.id;
   const config = inquilinos[id];
-  if (!config) return res.status(404).send("Inquilino nao encontrado");
+  if (!config) return res.status(404).send("Inquilino não encontrado");
 
   const finalRedirect = `${HA_URL}${config.dash}?kiosk`;
 
-  // Geramos um HTML que faz o POST automático. 
-  // O HA espera o campo "user" (ID do usuario) quando o handler é trusted_networks.
   res.send(`
     <html>
       <head>
-        <title>Autenticando...</title>
-        <style>body { font-family: sans-serif; text-align: center; padding-top: 100px; background: #1c1c1c; color: white; }</style>
+        <title>Conectando...</title>
+        <style>body { font-family: sans-serif; text-align: center; padding-top: 100px; background: #111; color: #fff; }</style>
       </head>
       <body>
-        <h2>Acessando Unidade ${id}...</h2>
-        <p>Validando acesso para: <strong>${config.user}</strong></p>
-
-        <form id="autoLoginForm" method="POST" action="${HA_URL}/auth/login_flow">
-            <input type="hidden" name="handler" value="trusted_networks">
-            <input type="hidden" name="handler" value="trusted_networks">
-            <input type="hidden" name="user" value="${config.user}">
-            <input type="hidden" name="client_id" value="${HA_URL}/">
-            <input type="hidden" name="redirect_uri" value="${finalRedirect}">
-        </form>
+        <h2>Autenticando Unidade ${id}...</h2>
+        <div id="status">Iniciando fluxo seguro...</div>
 
         <script>
-            // Dispara o envio do formulario em 500ms
-            setTimeout(function() {
-                document.getElementById('autoLoginForm').submit();
-            }, 500);
+            async function login() {
+                const status = document.getElementById('status');
+                try {
+                    // PASSO 1: Iniciar o fluxo enviando um JSON real pelo navegador
+                    const resFlow = await fetch("${HA_URL}/auth/login_flow", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            handler: ["trusted_networks", "trusted_networks"],
+                            client_id: "${HA_URL}/",
+                            redirect_uri: "${finalRedirect}"
+                        })
+                    });
+
+                    const flowData = await resFlow.json();
+                    const flowId = flowData.flow_id;
+
+                    status.innerText = "Confirmando usuário...";
+
+                    // PASSO 2: Enviar o usuário selecionado para o Flow ID gerado
+                    // Usamos um formulário padrão aqui para garantir o redirecionamento final
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = "${HA_URL}/auth/login_flow/" + flowId;
+                    
+                    const fields = {
+                        "user": "${config.user}",
+                        "client_id": "${HA_URL}/",
+                        "redirect_uri": "${finalRedirect}"
+                    };
+
+                    for (const key in fields) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = fields[key];
+                        form.appendChild(input);
+                    }
+
+                    document.body.appendChild(form);
+                    form.submit();
+
+                } catch (err) {
+                    status.innerHTML = "Erro de conexão.<br>Certifique-se de que o CORS está ativo no HA.";
+                    console.error(err);
+                }
+            }
+
+            login();
         </script>
       </body>
     </html>
   `);
 });
 
-app.listen(8099, '0.0.0.0', () => console.log("Porteiro Automático v13 Online 1721"));
+app.listen(8099, '0.0.0.0', () => console.log("Servidor v14 Ativo 1723"));
