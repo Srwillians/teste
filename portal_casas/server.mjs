@@ -35,4 +35,7 @@ app.get('/login', (req, res) => {
   `);
 });
 
-app.listen(8099, '0.0.0.0', () => console.log("Servidor rodando na porta 8099"));
+app.listen(8099, '0.0.0.0', () => {
+  console.log("Servidor de Inquilinos rodando na porta 8099");
+});
+
