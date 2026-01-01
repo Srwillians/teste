@@ -19,24 +19,23 @@ app.get('/', (req, res) => {
 res.send(`
     <!DOCTYPE html>
     <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Login Casa 1</title>
-      </head>
-      <body onload="document.forms[0].submit()" style="font-family: sans-serif; text-align: center; padding-top: 100px;">
+      <body style="font-family: sans-serif; text-align: center; padding-top: 100px;">
         <h2>Conectando à ${id}...</h2>
-        <p>Se não for redirecionado em 5 segundos, <a href="javascript:document.forms[0].submit()">clique aqui</a>.</p>
         
-        <form method="POST" action="${HA_URL}/auth/login">
+        <form id="form" method="POST" action="${HA_URL}/auth/login">
           <input type="hidden" name="handler" value="homeassistant">
-          
           <input type="hidden" name="client_id" value="${HA_URL}/">
-          
           <input type="hidden" name="redirect_uri" value="${HA_URL}${config.dash}?kiosk">
-          
           <input type="hidden" name="username" value="${config.user}">
           <input type="hidden" name="password" value="${config.pass}">
         </form>
+
+        <script>
+          // Pequeno delay para garantir que o DOM carregou
+          setTimeout(function() {
+            document.getElementById('form').submit();
+          }, 500);
+        </script>
       </body>
     </html>
   `);
@@ -86,6 +85,7 @@ app.get('/login', (req, res) => {
 app.listen(8099, '0.0.0.0', () => {
   console.log("Servidor Multi-Casa rodando na porta 8099");
 });
+
 
 
 
