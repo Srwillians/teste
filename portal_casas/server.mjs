@@ -12,45 +12,35 @@ app.get('/login', (req, res) => {
   const id = req.query.id;
   const config = inquilinos[id];
 
-  if (!config) {
-    return res.status(404).send("ID do inquilino nao encontrado.");
-  }
+  if (!config) return res.status(404).send("ID nao encontrado");
 
-  const finalRedirect = `${HA_URL}${config.dash}?kiosk`;
+  // Este link leva o usuario para o inicio do fluxo oficial de login
+  // Passando o client_id e o redirect_uri via URL (GET), que evita o erro de JSON
+  const authUrl = `${HA_URL}/auth/authorize?client_id=${encodeURIComponent(HA_URL + "/")}&redirect_uri=${encodeURIComponent(HA_URL + config.dash + "?kiosk")}`;
 
-  // Esta resposta gera um formulario HTML que se envia sozinho (autosubmit)
-  // Ele simula exatamente o clique no botao de "Login" do Home Assistant
   res.send(`
     <!DOCTYPE html>
-    <html lang="pt-br">
-    <head>
-        <meta charset="UTF-8">
-        <title>Autenticando - Unidade ${id}</title>
-    </head>
-    <body onload="document.forms[0].submit()" style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-        
+    <html>
+    <head><meta charset="UTF-8"></head>
+    <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
         <h2>Conectando à unidade ${id}...</h2>
-        <p>Por favor, aguarde o redirecionamento.</p>
-
-        <form method="POST" action="${HA_URL}/auth/login">
-            <input type="hidden" name="handler" value="homeassistant">
-            <input type="hidden" name="username" value="${config.user}">
-            <input type="hidden" name="password" value="${config.pass}">
+        <p>Identificando usuário: <strong>${config.user}</strong></p>
+        
+        <form id="loginForm" method="POST" action="${HA_URL}/auth/login_flow">
             <input type="hidden" name="client_id" value="${HA_URL}/">
-            <input type="hidden" name="redirect_uri" value="${finalRedirect}">
+            <input type="hidden" name="handler" value="homeassistant">
+            <input type="hidden" name="handler" value="homeassistant"> 
+            <input type="hidden" name="redirect_uri" value="${HA_URL}${config.dash}?kiosk">
         </form>
 
         <script>
-            // Caso o onload demore, tentamos forcar o envio apos 500ms
-            setTimeout(function(){
-                document.forms[0].submit();
-            }, 500);
+            // Em vez de POST direto pro login, vamos apenas redirecionar
+            // para a pagina de login ja com os dados pre-configurados na URL
+            window.location.href = "${authUrl}";
         </script>
     </body>
     </html>
   `);
 });
 
-app.listen(8099, '0.0.0.0', () => {
-  console.log("Servidor de Redirecionamento Direto Online na porta 8099 1649");
-});
+app.listen(8099, '0.0.0.0', () => console.log("Servidor Online"));
