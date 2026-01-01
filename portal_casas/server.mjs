@@ -54,11 +54,12 @@ app.get('/login', (req, res) => {
         <h2>Iniciando sessão na ${id}...</h2>
         <p>Aguarde o redirecionamento.</p>
         
-        <form method="POST" action="${HA_URL}/auth/login">
+        <form id="loginForm" method="POST" action="${HA_URL}/auth/login">
           <input type="hidden" name="handler" value="homeassistant">
+          <input type="hidden" name="client_id" value="${HA_URL}/">
+          <input type="hidden" name="redirect_uri" value="${config.dash}?kiosk">
           <input type="hidden" name="username" value="${config.user}">
           <input type="hidden" name="password" value="${config.pass}">
-          <input type="hidden" name="redirect_uri" value="${config.dash}?kiosk">
         </form>
       </body>
     </html>
@@ -69,4 +70,5 @@ app.get('/login', (req, res) => {
 app.listen(8099, '0.0.0.0', () => {
   console.log("Servidor Multi-Casa rodando na porta 8099");
 });
+
 
