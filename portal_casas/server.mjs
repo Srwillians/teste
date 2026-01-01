@@ -1,3 +1,14 @@
+import express from 'express';
+// O Node 18+ já tem fetch nativo, não precisa de import externo.
+const app = express();
+
+const HA_URL = "http://192.168.2.146:8123";
+
+const inquilinos = {
+  "casa1": { user: "visitante1", pass: "12345", dash: "/casa-wem" },
+  "casa2": { user: "visitante2", pass: "12345", dash: "/outra-casa" }
+};
+
 app.get('/login', async (req, res) => {
   const id = req.query.id;
   const config = inquilinos[id];
@@ -61,3 +72,5 @@ app.get('/login', async (req, res) => {
     res.status(500).send("Erro de conexão: " + error.message);
   }
 });
+
+app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Inquilino v2 Rodando 15:42"));
