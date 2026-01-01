@@ -62,4 +62,5 @@ app.get('/login', async (req, res) => {
   }
 });
 
-app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Inquilino v2 Rodando"));
+app.listen(8099, '0.0.0.0', () => console.log("Servidor Multi-Inquilino v2 Rodando 15:31"));
+
