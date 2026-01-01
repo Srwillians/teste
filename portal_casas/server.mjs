@@ -15,6 +15,10 @@ app.get('/login', (req, res) => {
 
   const finalRedirect = `${HA_URL}${config.dash}?kiosk`;
 
+  // Em vez de fetch (que dá erro de CORS), usamos um redirecionamento 
+  // que já "empurra" o usuário para o provedor de rede confiável.
+  const authUrl = `${HA_URL}/auth/authorize?client_id=${encodeURIComponent(HA_URL + "/")}&redirect_uri=${encodeURIComponent(finalRedirect)}&auth_callback=1`;
+
   res.send(`
     <html>
       <head>
@@ -22,63 +26,17 @@ app.get('/login', (req, res) => {
         <style>body { font-family: sans-serif; text-align: center; padding-top: 100px; background: #111; color: #fff; }</style>
       </head>
       <body>
-        <h2>Autenticando Unidade ${id}...</h2>
-        <div id="status">Iniciando fluxo seguro...</div>
+        <h2>Acessando Unidade ${id}...</h2>
+        <p>Aguarde o redirecionamento seguro...</p>
 
         <script>
-            async function login() {
-                const status = document.getElementById('status');
-                try {
-                    // PASSO 1: Iniciar o fluxo enviando um JSON real pelo navegador
-                    const resFlow = await fetch("${HA_URL}/auth/login_flow", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            handler: ["trusted_networks", "trusted_networks"],
-                            client_id: "${HA_URL}/",
-                            redirect_uri: "${finalRedirect}"
-                        })
-                    });
-
-                    const flowData = await resFlow.json();
-                    const flowId = flowData.flow_id;
-
-                    status.innerText = "Confirmando usuário...";
-
-                    // PASSO 2: Enviar o usuário selecionado para o Flow ID gerado
-                    // Usamos um formulário padrão aqui para garantir o redirecionamento final
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = "${HA_URL}/auth/login_flow/" + flowId;
-                    
-                    const fields = {
-                        "user": "${config.user}",
-                        "client_id": "${HA_URL}/",
-                        "redirect_uri": "${finalRedirect}"
-                    };
-
-                    for (const key in fields) {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = key;
-                        input.value = fields[key];
-                        form.appendChild(input);
-                    }
-
-                    document.body.appendChild(form);
-                    form.submit();
-
-                } catch (err) {
-                    status.innerHTML = "Erro de conexão.<br>Certifique-se de que o CORS está ativo no HA.";
-                    console.error(err);
-                }
-            }
-
-            login();
+            // Redirecionamos para a página de autorização oficial.
+            // O HA detectará seu IP e mostrará a lista de usuários.
+            window.location.href = "${authUrl}";
         </script>
       </body>
     </html>
   `);
 });
 
-app.listen(8099, '0.0.0.0', () => console.log("Servidor v14 Ativo 1723"));
+app.listen(8099, '0.0.0.0', () => console.log("Servidor v15 Online"));
